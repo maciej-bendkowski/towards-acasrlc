@@ -134,7 +134,9 @@ fip (Var T) f @ (Fun _ _) =
     return [f] -- note: a slight optimisation.
 
 fip (Var v) f @ (Fun _ _) =
-    return $ concat $ mapMaybe (fip f) (get v)
+    let x = concat $ mapMaybe (fip f) (get v)
+     in if null x then Nothing
+                  else return x
 
 -- | Getter for the given non-terminal productions.
 get :: Variable -> [Term]
@@ -194,6 +196,15 @@ grammars = r0 : nextG 1 grammars
 --   productions of reduction grammars.
 grammars' :: [[Term]]
 grammars' = map (filter large) grammars
+
+-- | Checks if a given set of terms is unambiguous or not.
+--   For that purpose, it is checked if all pairs of distinct terms
+--   have empty finite intersection partitions.
+unambiguous :: [Term] -> Bool
+unambiguous g = f [fip t t' | t <- g, t' <- g, t /= t']
+    where f [] = True
+          f (Nothing : xs) = f xs
+          f (Just _ : _) = False
 
 -- | Asymptotically significant terms (productions).
 large :: Term -> Bool
